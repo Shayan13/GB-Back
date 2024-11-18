@@ -96,12 +96,14 @@ export const getDailyReport = async (
 ) => {
   try {
     const userId = req.user!.id;
-    const { date = new Date() } = req.query;
+    const { date } = req.query;
 
-    const startDate = new Date(date);
+    const dateStr = typeof date === 'string' ? date : new Date();
+
+    const startDate = new Date(dateStr);
     startDate.setHours(0, 0, 0, 0);
-    
-    const endDate = new Date(date);
+
+    const endDate = new Date(dateStr);
     endDate.setHours(23, 59, 59, 999);
 
     const transactions = await prisma.transaction.findMany({
@@ -121,7 +123,7 @@ export const getDailyReport = async (
     const summary = transactions.reduce((acc, tx) => {
       const isOutgoing = tx.senderId === userId;
       const type = tx.assetType;
-      
+
       if (!acc[type]) {
         acc[type] = { incoming: 0, outgoing: 0 };
       }
@@ -178,7 +180,7 @@ export const getMonthlyReport = async (
       const isOutgoing = tx.senderId === userId;
       const type = tx.assetType;
       const txType = tx.type;
-      
+
       if (!acc[type]) {
         acc[type] = {
           incoming: 0,
@@ -204,7 +206,7 @@ export const getMonthlyReport = async (
       acc[type].byType[txType].total += tx.amount;
 
       return acc;
-    }, {} as Record<string, { 
+    }, {} as Record<string, {
       incoming: number;
       outgoing: number;
       byType: Record<string, { count: number; total: number }>

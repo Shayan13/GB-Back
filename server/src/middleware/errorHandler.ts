@@ -12,13 +12,13 @@ export const errorHandler = (
 
   if (err instanceof AppError) {
     return res.status(err.statusCode).json({
-      status: 'error',
+      status: err.status,
       message: err.message
     });
   }
 
   return res.status(500).json({
     status: 'error',
-    message: 'Internal server error'
+    message: 'Internal server error\n' + err.message
   });
 };

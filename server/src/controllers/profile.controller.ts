@@ -270,6 +270,8 @@ export const removeCreditCard = async (
   }
 };
 
+
+// ToDo: Implement KYC verification function
 // Simulate KYC verification with external service
 const simulateKycVerification = async (nationalId: string) => {
   // In production, this would be an actual API call to a KYC service

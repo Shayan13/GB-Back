@@ -44,7 +44,7 @@ export const verifyOtp = async (
   try {
     const { phoneNumber, otp } = req.body;
 
-    // Verify OTP (implement proper verification in production)
+    // ToDo: Verify OTP (implement proper verification in production)
     // For demo, we're accepting any OTP
 
     let user = await prisma.user.findUnique({
