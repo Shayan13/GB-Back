@@ -8,6 +8,7 @@ export const errorHandler = (
   res: Response,
   next: NextFunction
 ) => {
+  // ToDo: Integrate sentry and any other health checkers
   logger.error(err);
 
   if (err instanceof AppError) {
