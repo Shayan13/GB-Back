@@ -1,0 +1,17 @@
+1. Test the user flow of current code and perfect it
+   1. Finalize db schema and zod schemas
+   2. Finalize overal "middleware/error-handling/logging" logics
+   3. Do all "ToDo" comment notes in the code
+   4. Complete jwt (add refresh token mechanism)
+   
+2. Add api documentation
+
+3. Add security measures
+   
+4. Add sentry for better error logging
+   
+5. Add external api sources
+   1. Momentary gold price
+   2. KYC and bank account verification
+   3. Payments solutions
+   4. Accounting api calls

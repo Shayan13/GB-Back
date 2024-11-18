@@ -43,4 +43,5 @@ app.use('/api/wallet', authenticateToken, walletRoutes);
 // Error handling
 app.use(errorHandler);
 
+
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

@@ -225,3 +225,6 @@ export const getMonthlyReport = async (
     next(error);
   }
 };
+
+
+// ToDo: get daily, monthly, yearly, total user profit/loss

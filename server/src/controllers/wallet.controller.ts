@@ -396,3 +396,7 @@ export const requestPhysicalCollection = async (
     next(error);
   }
 };
+
+// ToDo: Integrate actual payment portal responses into the  buy-gold/deposit-money api flows, and also complete the flow of withdrawing from money wallet.
+// ToDo: add actual admin functionality to change the pending physical-gold-collection transactions status from "PENDING" to "FAILED" or "COMPLETED".
+// ToDo: Integrate accounting software api into user payed endpoints to generate factors for each transaction.

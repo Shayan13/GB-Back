@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { PrismaClient } from '@prisma/client';
 import jwt from 'jsonwebtoken';
-import { AppError } from '../utils/appError';
+
 
 const prisma = new PrismaClient();
 
@@ -13,6 +13,8 @@ export const sendOtp = async (
 ) => {
   try {
     const { phoneNumber } = req.body;
+
+    // ToDo: verify phoneNumber
 
     // Generate OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -43,7 +45,7 @@ export const verifyOtp = async (
 ) => {
   try {
     const { phoneNumber, otp } = req.body;
-
+    
     // ToDo: Verify OTP (implement proper verification in production)
     // For demo, we're accepting any OTP
 
