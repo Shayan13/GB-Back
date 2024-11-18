@@ -1,0 +1,188 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  roleId    String?
+  role      Role?    @relation(fields: [roleId], references: [id], name: "UserRole")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Role {
+  id          String       @id @default(uuid())
+  name        String       @unique
+  permissions Permission[] @relation("RolePermissions")
+  users       User[]       @relation("UserRole")
+}
+
+model Permission {
+  id       String @id @default(uuid())
+  action   String
+  resource String
+  roles    Role[] @relation("RolePermissions")
+}
+
+model ContentType {
+  id                    String                  @id @default(cuid())
+  name                  String                  @unique
+  description           String?
+  fields                Field[] // Fields and components associated with this content type
+  contentInstances      ContentInstance[] // Content instances of this type
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt
+  RelationshipBlueprint RelationshipBlueprint[]
+
+  RelationshipBlueprint RelationshipBlueprint[]
+}
+
+model Field {
+  id                    String                  @id @default(cuid())
+  label                 String
+  fieldType             FieldType // Enum for field type (string, number, etc.)
+  config                Json?
+  repeatable            Boolean                 @default(false) // Indicates if the field/component can be repeated
+  topLevelContentType   ContentType             @relation(fields: [topLevelContentTypeId], references: [id], onDelete: Cascade) // Track the top-level content type
+  topLevelContentTypeId String // ID of the top-level content type for this field
+  component             Component?              @relation(fields: [componentId], references: [id], onDelete: Cascade) // Field belongs to a component
+  componentId           String?
+  fields                Field[]                 @relation("ComponentFields") // Nested fields within this component
+  parentField           Field?                  @relation("ComponentFields", fields: [parentFieldId], references: [id], onDelete: Cascade) // Cascade delete
+  parentFieldId         String?
+  contentType           ContentType?            @relation(fields: [contentTypeId], references: [id], onDelete: Cascade) // Field belongs to a ContentType
+  contentTypeId         String?
+  fieldInstances        FieldInstance[]         @relation(onDelete: Cascade) // Instances of this field in content or components
+  form                  Form?                   @relation(fields: [formId], references: [id])
+  formId                String?
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt
+  RelationshipBlueprint RelationshipBlueprint[]
+}
+
+model Component {
+  id                 String              @id @default(cuid())
+  name               String
+  fields             Field[] // Fields that define the structure of this component
+  componentInstances ComponentInstance[] @relation(onDelete: Cascade) // Cascade delete
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+}
+
+model ComponentInstance {
+  id                String           @id @default(cuid())
+  component         Component        @relation(fields: [componentId], references: [id], onDelete: Cascade) // Cascade delete
+  componentId       String
+  contentInstance   ContentInstance? @relation(fields: [contentInstanceId], references: [id], onDelete: Cascade) // Cascade delete
+  contentInstanceId String?
+  fieldInstances    FieldInstance[]  @relation(onDelete: Cascade) // Field instances for this component instance
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+}
+
+model ContentInstance {
+  id                String              @id @default(cuid())
+  contentType       ContentType         @relation(fields: [contentTypeId], references: [id], onDelete: Cascade) // Cascade delete
+  contentTypeId     String
+  fieldInstances    FieldInstance[]     @relation(onDelete: Cascade) // Field values for this content instance
+  locale            String? // For localization
+  version           Int                 @default(1) // Versioning of content instances
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  ComponentInstance ComponentInstance[]
+
+  @@index([contentTypeId, locale, version])
+}
+
+model FieldInstance {
+  id                   String             @id @default(cuid())
+  field                Field              @relation(fields: [fieldId], references: [id], onDelete: Cascade) // Cascade delete
+  fieldId              String
+  contentInstance      ContentInstance?   @relation(fields: [contentInstanceId], references: [id]) // Optional: On delete, you can choose to not cascade here if needed
+  contentInstanceId    String?
+  componentInstance    ComponentInstance? @relation(fields: [componentInstanceId], references: [id]) // Optional: On delete, you can choose to not cascade here if needed
+  componentInstanceId  String?
+  stringValue          String?
+  numberValue          Float?
+  booleanValue         Boolean?
+  dateValue            DateTime?
+  jsonValue            Json?
+  relationValues       FieldInstance[]    @relation("RelatedFieldInstances", references: [id], onDelete: Cascade) // Cascade delete
+  parentFieldInstances FieldInstance[]    @relation("ChildFieldInstances", references: [id], onDelete: Cascade) // Cascade delete
+  childFieldInstances  FieldInstance[]    @relation("ChildFieldInstances", references: [id], onDelete: Cascade) // Cascade delete
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  fieldInstanceId      String?
+  FormSubmission       FormSubmission?    @relation(fields: [formSubmissionId], references: [id])
+  formSubmissionId     String?
+  FieldInstance        FieldInstance?     @relation(fields: [fieldInstanceId], references: [id])
+  FieldInstance        FieldInstance[]
+
+  @@index([fieldId, contentInstanceId, componentInstanceId])
+}
+
+model Form {
+  id          String           @id @default(cuid())
+  name        String           @unique
+  description String?
+  fields      Field[] // Fields that define the form structure
+  submissions FormSubmission[] // Submissions for this form
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+}
+
+model FormSubmission {
+  id             String          @id @default(cuid())
+  form           Form            @relation(fields: [formId], references: [id])
+  formId         String
+  fieldInstances FieldInstance[] @relation(onDelete: Cascade) // User-submitted field values
+  submittedAt    DateTime        @default(now())
+  ipAddress      String? // Optional: IP address of the submitter
+}
+
+model RelationshipBlueprint {
+  id                String       @id @default(cuid())
+  fromContentType   ContentType  @relation("FromContentType", fields: [fromContentTypeId], references: [id], onDelete: Cascade)
+  fromContentTypeId String
+  fromField         Field        @relation(fields: [fromFieldId], references: [id], onDelete: Cascade)
+  fromFieldId       String
+  toContentType     ContentType  @relation("ToContentType", fields: [toContentTypeId], references: [id], onDelete: Cascade)
+  toContentTypeId   String
+  toField           Field        @relation(fields: [toFieldId], references: [id], onDelete: Cascade)
+  toFieldId         String
+  relationType      RelationType // Enum to specify the type of relationship (e.g., One-to-Many, Many-to-Many)
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  ContentType       ContentType? @relation(fields: [contentTypeId], references: [id])
+  contentTypeId     String?
+}
+
+enum FieldType {
+  STRING
+  NUMBER
+  BOOLEAN
+  DATE
+  JSON
+  COMPONENT // Field type for components
+  RELATION // Field type for handling relationships
+}
+
+enum RelationType {
+  ONE_TO_ONE
+  ONE_TO_MANY
+  MANY_TO_MANY
+}

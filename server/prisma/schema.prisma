@@ -1,0 +1,101 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(uuid())
+  phoneNumber   String    @unique
+  name          String?
+  isKycVerified Boolean   @default(false)
+  kycDetails    KycDetails?
+  goldWallet    GoldWallet?
+  moneyWallet   MoneyWallet?
+  bankAccounts  BankAccount[]
+  creditCards   CreditCard[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  sentTransfers     Transaction[] @relation("SenderTransactions")
+  receivedTransfers Transaction[] @relation("ReceiverTransactions")
+}
+
+model KycDetails {
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id])
+  nationalId    String   @unique
+  status        String   @default("PENDING") // PENDING, VERIFIED, REJECTED
+  verifiedAt    DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model GoldWallet {
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id])
+  balance       Float    @default(0) // in grams
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model MoneyWallet {
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id])
+  balance       Float    @default(0)
+  currency      String   @default("USD")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model BankAccount {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  bankName      String
+  accountNumber String
+  accountType   String
+  isVerified    Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([userId, accountNumber])
+}
+
+model CreditCard {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  lastFourDigits String
+  cardType      String
+  expiryMonth   Int
+  expiryYear    Int
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Transaction {
+  id            String   @id @default(uuid())
+  type          String   // DEPOSIT, WITHDRAW, TRANSFER, BUY_GOLD, SELL_GOLD, PHYSICAL_COLLECTION
+  senderId      String
+  sender        User     @relation("SenderTransactions", fields: [senderId], references: [id])
+  receiverId    String?
+  receiver      User?    @relation("ReceiverTransactions", fields: [receiverId], references: [id])
+  amount        Float
+  assetType     String   // GOLD, MONEY
+  status        String   // PENDING, COMPLETED, FAILED
+  description   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
