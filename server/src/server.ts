@@ -1,4 +1,5 @@
 import express from 'express';
+import expressOasGenerator from 'express-oas-generator';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
@@ -16,6 +17,18 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+
+/**
+ * @info invoke handleResponses as the first middleware
+ */
+// @ts-ignore
+expressOasGenerator.handleResponses(app, {});
+
+/**
+ * @info Invoke all other middlewares and routes here
+ */
+
 
 // Security middleware
 app.use(helmet());
@@ -42,6 +55,11 @@ app.use('/api/wallet', authenticateToken, walletRoutes);
 
 // Error handling
 app.use(errorHandler);
+
+/**
+ * @info Invoke handleRequests as the last middleware
+ */
+expressOasGenerator.handleRequests();
 
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
