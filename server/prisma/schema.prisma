@@ -14,88 +14,182 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(uuid())
-  phoneNumber   String    @unique
+  id            String      @id @default(uuid())
+  phoneNumber   String      @unique
   name          String?
-  isKycVerified Boolean   @default(false)
+  isKycVerified Boolean     @default(false)
   kycDetails    KycDetails?
-  goldWallet    GoldWallet?
-  moneyWallet   MoneyWallet?
-  bankAccounts  BankAccount[]
-  creditCards   CreditCard[]
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  sentTransfers     Transaction[] @relation("SenderTransactions")
-  receivedTransfers Transaction[] @relation("ReceiverTransactions")
+
+  // Relations to enforce unique wallets for every user
+  goldWallet  GoldWallet  @relation(fields: [goldWalletId], references: [id])
+  moneyWallet MoneyWallet @relation(fields: [moneyWalletId], references: [id])
+
+  bankAccounts BankAccount[]
+  creditCards  CreditCard[]
+
+  sentMoneyTransfers     MoneyTransfer[] @relation("MoneySenderTransactions")
+  receivedMoneyTransfers MoneyTransfer[] @relation("MoneyReceiverTransactions")
+
+  sentGoldTransfers     GoldTransfer[] @relation("GoldSenderTransactions")
+  receivedGoldTransfers GoldTransfer[] @relation("GoldReceiverTransactions")
+
+  bankTransactions        BankTransaction[]
+  goldTransactions        GoldTransaction[]
+  physicalGoldCollections PhysicalGoldCollection[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
+// KYC Details
 model KycDetails {
-  id            String   @id @default(uuid())
-  userId        String   @unique
-  user          User     @relation(fields: [userId], references: [id])
-  nationalId    String   @unique
-  status        String   @default("PENDING") // PENDING, VERIFIED, REJECTED
-  verifiedAt    DateTime?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id         String    @id @default(uuid())
+  userId     String    @unique
+  user       User      @relation(fields: [userId], references: [id])
+  nationalId String    @unique
+  status     String    @default("PENDING") // PENDING, VERIFIED, REJECTED
+  verifiedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 }
 
+// Wallet Models
 model GoldWallet {
-  id            String   @id @default(uuid())
-  userId        String   @unique
-  user          User     @relation(fields: [userId], references: [id])
-  balance       Float    @default(0) // in grams
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  balance   Float    @default(0) // in grams
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model MoneyWallet {
-  id            String   @id @default(uuid())
-  userId        String   @unique
-  user          User     @relation(fields: [userId], references: [id])
-  balance       Float    @default(0)
-  currency      String   @default("USD")
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  balance   Float    @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
+// Bank Account and Credit Card Models
 model BankAccount {
-  id            String   @id @default(uuid())
+  id            String            @id @default(uuid())
   userId        String
-  user          User     @relation(fields: [userId], references: [id])
+  user          User              @relation(fields: [userId], references: [id])
   bankName      String
   accountNumber String
   accountType   String
-  isVerified    Boolean  @default(false)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  isVerified    Boolean           @default(false)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  Transactions  BankTransaction[]
 
   @@unique([userId, accountNumber])
 }
 
 model CreditCard {
-  id            String   @id @default(uuid())
-  userId        String
-  user          User     @relation(fields: [userId], references: [id])
+  id             String   @id @default(uuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id])
   lastFourDigits String
-  cardType      String
-  expiryMonth   Int
-  expiryYear    Int
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  cardType       String
+  expiryMonth    Int
+  expiryYear     Int
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  Transactions BankTransaction[]
 }
 
-model Transaction {
-  id            String   @id @default(uuid())
-  type          String   // DEPOSIT, WITHDRAW, TRANSFER, BUY_GOLD, SELL_GOLD, PHYSICAL_COLLECTION
-  senderId      String
-  sender        User     @relation("SenderTransactions", fields: [senderId], references: [id])
-  receiverId    String?
-  receiver      User?    @relation("ReceiverTransactions", fields: [receiverId], references: [id])
+// Money Transfers
+model MoneyTransfer {
+  id          String            @id @default(uuid())
+  senderId    String
+  sender      User              @relation("MoneySenderTransactions", fields: [senderId], references: [id])
+  receiverId  String
+  receiver    User              @relation("MoneyReceiverTransactions", fields: [receiverId], references: [id])
+  amount      Float
+  status      TransactionStatus
+  description String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+}
+
+// Gold Transfers
+model GoldTransfer {
+  id          String            @id @default(uuid())
+  senderId    String
+  sender      User              @relation("GoldSenderTransactions", fields: [senderId], references: [id])
+  receiverId  String
+  receiver    User              @relation("GoldReceiverTransactions", fields: [receiverId], references: [id])
+  amount      Float // in grams
+  status      TransactionStatus
+  description String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+}
+
+// Gold Buy and Sell Transactions
+model GoldTransaction {
+  id           String              @id @default(uuid())
+  userId       String
+  user         User                @relation(fields: [userId], references: [id])
+  type         GoldTransactionType // BUY_GOLD, SELL_GOLD
+  amount       Float // in grams
+  pricePerGram Float // Price at the time of transaction
+  totalPrice   Float // Calculated total value
+  status       TransactionStatus
+  description  String?
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+}
+
+// Deposits and Withdrawals
+model BankTransaction {
+  id            String              @id @default(uuid())
+  userId        String
+  user          User                @relation(fields: [userId], references: [id])
   amount        Float
-  assetType     String   // GOLD, MONEY
-  status        String   // PENDING, COMPLETED, FAILED
-  description   String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  type          BankTransactionType // DEPOSIT, WITHDRAWAL
+  status        TransactionStatus
+  bankAccountId String? // Optional for withdrawals
+  bankAccount   BankAccount?        @relation(fields: [bankAccountId], references: [id])
+  creditCardId  String? // Optional for withdrawals
+  creditCard    CreditCard?         @relation(fields: [creditCardId], references: [id])
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+}
+
+// Physical Gold Collection
+model PhysicalGoldCollection {
+  id                 String            @id @default(uuid())
+  userId             String
+  user               User              @relation(fields: [userId], references: [id])
+  amount             Float // in grams
+  collectionLocation String
+  status             TransactionStatus
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  @@map("PhysicalCollection")
+}
+
+// Enums for Transaction Types and Statuses
+enum GoldTransactionType {
+  BUY_GOLD
+  SELL_GOLD
+
+  @@map("TransactionType")
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+enum BankTransactionType {
+  DEPOSIT
+  WITHDRAWAL
 }
