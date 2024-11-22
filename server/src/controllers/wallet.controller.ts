@@ -147,7 +147,7 @@ export const depositMoney = async (
 
     // Verify bank account belongs to user
     const bankAccount = await prisma.bankAccount.findFirst({
-      where: { 
+      where: {
         id: bankAccountId,
         userId,
         isVerified: true
@@ -198,7 +198,7 @@ export const withdrawMoney = async (
 
     // Verify bank account belongs to user
     const bankAccount = await prisma.bankAccount.findFirst({
-      where: { 
+      where: {
         id: bankAccountId,
         userId,
         isVerified: true
@@ -264,41 +264,82 @@ export const transferFunds = async (
     }
 
     const transaction = await prisma.$transaction(async (prisma) => {
-      const walletType = assetType === 'GOLD' ? 'goldWallet' : 'moneyWallet';
-      
-      // Check sender's balance
-      const senderWallet = await prisma[walletType].findUnique({
-        where: { userId: senderId }
-      });
 
-      if (!senderWallet || senderWallet.balance < amount) {
-        throw new AppError('Insufficient funds', 400);
+      const walletType = assetType === 'GOLD' ? 'goldWallet' : 'moneyWallet';
+      // If the asset type is gold, transfer gold
+      if (walletType === 'goldWallet') {
+
+        // Check sender's balance
+        const senderWallet = await prisma[walletType].findUnique({
+          where: { userId: senderId }
+        });
+
+        if (!senderWallet || senderWallet.balance < amount) {
+          throw new AppError('Insufficient funds', 400);
+        }
+
+        // Update sender's wallet
+        await prisma[walletType].update({
+          where: { userId: senderId },
+          data: { balance: { decrement: amount } }
+        });
+
+        // Update receiver's wallet
+        await prisma[walletType].update({
+          where: { userId: receiver.id },
+          data: { balance: { increment: amount } }
+        });
+
+        // Create transaction record
+        return prisma.transaction.create({
+          data: {
+            type: 'TRANSFER',
+            senderId,
+            receiverId: receiver.id,
+            amount,
+            assetType,
+            status: 'COMPLETED',
+            description: `Transfer ${amount} ${assetType} to ${receiverPhone}`
+          }
+        });
+        // If the asset type is money, transfer money
+      } else {
+        // Check sender's balance
+        const senderWallet = await prisma[walletType].findUnique({
+          where: { userId: senderId }
+        });
+
+        if (!senderWallet || senderWallet.balance < amount) {
+          throw new AppError('Insufficient funds', 400);
+        }
+
+        // Update sender's wallet
+        await prisma[walletType].update({
+          where: { userId: senderId },
+          data: { balance: { decrement: amount } }
+        });
+
+        // Update receiver's wallet
+        await prisma[walletType].update({
+          where: { userId: receiver.id },
+          data: { balance: { increment: amount } }
+        });
+
+        // Create transaction record
+        return prisma.transaction.create({
+          data: {
+            type: 'TRANSFER',
+            senderId,
+            receiverId: receiver.id,
+            amount,
+            assetType,
+            status: 'COMPLETED',
+            description: `Transfer ${amount} ${assetType} to ${receiverPhone}`
+          }
+        });
       }
 
-      // Update sender's wallet
-      await prisma[walletType].update({
-        where: { userId: senderId },
-        data: { balance: { decrement: amount } }
-      });
 
-      // Update receiver's wallet
-      await prisma[walletType].update({
-        where: { userId: receiver.id },
-        data: { balance: { increment: amount } }
-      });
-
-      // Create transaction record
-      return prisma.transaction.create({
-        data: {
-          type: 'TRANSFER',
-          senderId,
-          receiverId: receiver.id,
-          amount,
-          assetType,
-          status: 'COMPLETED',
-          description: `Transfer ${amount} ${assetType} to ${receiverPhone}`
-        }
-      });
     });
 
     res.status(200).json({
@@ -355,3 +396,7 @@ export const requestPhysicalCollection = async (
     next(error);
   }
 };
+
+// ToDo: Integrate actual payment portal responses into the  buy-gold/deposit-money api flows, and also complete the flow of withdrawing from money wallet.
+// ToDo: add actual admin functionality to change the pending physical-gold-collection transactions status from "PENDING" to "FAILED" or "COMPLETED".
+// ToDo: Integrate accounting software api into user payed endpoints to generate factors for each transaction.

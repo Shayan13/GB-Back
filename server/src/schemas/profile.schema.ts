@@ -24,9 +24,10 @@ export const profileSchemas = {
     })
   }),
 
+  // ToDo: finalize national code verification using regex
   kyc: z.object({
     body: z.object({
-      nationalId: z.string().min(5).max(30)
+      nationalId: z.string().length(10)
     })
   })
 };

@@ -8,11 +8,12 @@ export const errorHandler = (
   res: Response,
   next: NextFunction
 ) => {
+  // ToDo: Integrate sentry and any other health checkers
   logger.error(err);
 
   if (err instanceof AppError) {
     return res.status(err.statusCode).json({
-      status: 'error',
+      status: err.status,
       message: err.message
     });
   }

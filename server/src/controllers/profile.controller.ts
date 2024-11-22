@@ -11,6 +11,7 @@ export const updateProfile = async (
   next: NextFunction
 ) => {
   try {
+    // ToDo: Add user last name in a separate column ? 
     const userId = req.user!.id;
     const { name } = req.body;
 
@@ -28,6 +29,7 @@ export const updateProfile = async (
   }
 };
 
+
 export const submitKyc = async (
   req: Request,
   res: Response,
@@ -36,6 +38,8 @@ export const submitKyc = async (
   try {
     const userId = req.user!.id;
     const { nationalId } = req.body;
+
+    // ToDo: add national code and phone number ownership check
 
     // Check if KYC already exists
     const existingKyc = await prisma.kycDetails.findUnique({
@@ -104,6 +108,8 @@ export const addBankAccount = async (
     const userId = req.user!.id;
     const { bankName, accountNumber, accountType } = req.body;
 
+    // ToDo: Verify bank account ownership
+
     // Check if bank account already exists
     const existingAccount = await prisma.bankAccount.findFirst({
       where: {
@@ -142,6 +148,8 @@ export const addCreditCard = async (
   try {
     const userId = req.user!.id;
     const { lastFourDigits, cardType, expiryMonth, expiryYear } = req.body;
+
+    // ToDo: Verify bank account ownership
 
     const creditCard = await prisma.creditCard.create({
       data: {
@@ -270,6 +278,8 @@ export const removeCreditCard = async (
   }
 };
 
+
+// ToDo: Implement KYC verification function
 // Simulate KYC verification with external service
 const simulateKycVerification = async (nationalId: string) => {
   // In production, this would be an actual API call to a KYC service
